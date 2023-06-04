@@ -6,8 +6,11 @@ import re
 import tkinter as tk
 from tkinter import messagebox
 
-from anyio import run, create_task_group
+from aiofile import LineReader, Writer, AIOFile
 from dotenv import load_dotenv
+
+ENV_FILE = '.env'
+ACCOUNT_ENV = 'ACCOUNT'
 
 
 async def register_user(user_name: str):
@@ -29,6 +32,19 @@ async def register_user(user_name: str):
         raise ValueError(f'Ошибка регистрации пользователя. Ответ сервера {response}')
     logging.debug(f'Пользователь {user} зарегистрирован')
 
+    # Записываем результат регистрации в env-файл
+    lines = []
+    async with AIOFile(ENV_FILE) as afp:
+        async for line in LineReader(afp):
+            lines.append(line)
+    async with AIOFile(ENV_FILE, 'w') as afp:
+        writer = Writer(afp)
+        [await writer(line)
+         if not line.startswith(ACCOUNT_ENV)  # TODO заменить условие на re.match
+         else await writer(f'{ACCOUNT_ENV}={user["account_hash"]}\n')
+         for line in lines]
+        await afp.fsync()
+
     return user['nickname'], user['account_hash']
 
 
@@ -45,14 +61,12 @@ def register(input_field, root):
     text = input_field.get()
     if not text:
         return
-
-    nickname, account_hash = await register_user(text)  # FIXME Как запустить асинхронную функцию из синхронной с использованием пакета anyio
+    nickname, account_hash = asyncio.run(register_user(text))
     draw_message(f"Вы успешно зарегистрированы.\nВаш никнейм - {nickname}\nВаш токен - {account_hash}")
     root.quit()
 
 
-async def draw():
-
+def draw():
     root = tk.Tk()
     root.title('Регистрация в чате Майнкрафтера')
 
@@ -75,11 +89,5 @@ async def draw():
     root.mainloop()
 
 
-async def main():
-
-    async with create_task_group() as tg:
-        tg.start_soon(draw)
-
-
 if __name__ == '__main__':
-    run(main)
+    draw()
