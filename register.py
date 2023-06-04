@@ -1,16 +1,18 @@
 import asyncio
 import json
-import logging
 import os
 import re
 import tkinter as tk
 from tkinter import messagebox
 
 from aiofile import LineReader, Writer, AIOFile
+from aiologger import Logger
 from dotenv import load_dotenv
 
 ENV_FILE = '.env'
 ACCOUNT_ENV = 'ACCOUNT'
+
+logger = Logger.with_default_handlers(name='register-script')
 
 
 async def register_user(user_name: str):
@@ -30,7 +32,7 @@ async def register_user(user_name: str):
 
     if json.loads(response) is None:  # Если результат аутентификации null, то прекращаем выполнение скрипта
         raise ValueError(f'Ошибка регистрации пользователя. Ответ сервера {response}')
-    logging.debug(f'Пользователь {user} зарегистрирован')
+    await logger.info(f'Пользователь {user} зарегистрирован')
 
     # Записываем результат регистрации в env-файл
     lines = []
@@ -44,6 +46,7 @@ async def register_user(user_name: str):
          else await writer(f'{ACCOUNT_ENV}={user["account_hash"]}\n')
          for line in lines]
         await afp.fsync()
+    await logger.info(f'Хеш аккаунта сохранен в файле {ENV_FILE}')
 
     return user['nickname'], user['account_hash']
 
