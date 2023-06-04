@@ -4,19 +4,18 @@ import re
 import asyncio
 from uuid import UUID
 
-import backoff
-
 from common import options, drawing
-from common.etc import InvalidToken, logger, cancelled_handler
+from common.etc import InvalidToken, logger
+
+VERIFICATION_INTERVAL = 90 * 60
 
 
 def authorize(minechat_host: str, minechat_port: 'int > 0', account: UUID):
     def wrap(func):
         async def wrapped(*args):
-            _, watchdog_queue, status_queue = args
+            _, watchdog_queue, status_queue, reader, writer = args
             status_queue.put_nowait(drawing.SendingConnectionStateChanged.INITIATED)
 
-            reader, writer = await asyncio.open_connection(minechat_host, minechat_port)
             await reader.readline()  # пропускаем строку-приглашение
             writer.write(f"{account}\n".encode())
             await writer.drain()
@@ -33,7 +32,7 @@ def authorize(minechat_host: str, minechat_port: 'int > 0', account: UUID):
             status_queue.put_nowait(drawing.NicknameReceived(auth["nickname"]))
 
             watchdog_queue.put_nowait("Connection is alive. Prompt before auth")
-            await func(*args, writer=writer)
+            await func(*args)
 
             writer.close()
             status_queue.put_nowait(drawing.SendingConnectionStateChanged.CLOSED)
@@ -44,12 +43,8 @@ def authorize(minechat_host: str, minechat_port: 'int > 0', account: UUID):
     return wrap
 
 
-@backoff.on_exception(backoff.expo,
-                      asyncio.exceptions.CancelledError,
-                      raise_on_giveup=False,
-                      giveup=cancelled_handler)
 @authorize(options.host, options.sending_port, options.account)
-async def send_messages(queue, watchdog_queue, _, /, writer):
+async def send_messages(queue, watchdog_queue, status_queue, reader, writer, /):
 
     while message := await queue.get():
         message_line = ''.join([re.sub(r'\\n', ' ', message), '\n']).encode()
@@ -58,3 +53,14 @@ async def send_messages(queue, watchdog_queue, _, /, writer):
         writer.writelines([message_line, line_feed])
         await writer.drain()
         watchdog_queue.put_nowait('Connection is alive. Message sent')
+
+
+async def send_empty_message(writer: asyncio.StreamWriter, /):
+    """Каждые VERIFICATION_INTERVAL секунд посылает на порт отправки сообщений пустое сообщение, чтобы
+    поддерживать соединение с сервером активным"""
+    while True:
+        await asyncio.sleep(VERIFICATION_INTERVAL)
+        line_feed = '\n'.encode()
+        writer.write(line_feed)
+        await writer.drain()
+        logger.info('Empty message sent to maintain the connection')

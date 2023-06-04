@@ -42,13 +42,6 @@ def get_args():
     return parser.parse_args()
 
 
-def cancelled_handler(e) -> None:
-    """Обработчик для исключения asyncio.exceptions.CancelledError"""
-
-    logger.info("Прерываем работу сервера")  # логируем полученное сообщение
-    raise
-
-
 class InvalidToken(Exception):
     """Исключение ошибки авторизации по токену"""
 
@@ -58,9 +51,7 @@ class InvalidToken(Exception):
         super().__init__(message)
 
         # отрисовываем окно с тексом ошибки
-        asyncio.gather(
-            draw_error(message)
-        )
+        draw_error(message)
 
 
 async def watch_for_connection(watchdog_queue: asyncio.Queue, status_queue: asyncio.Queue, /):
@@ -77,3 +68,19 @@ async def watch_for_connection(watchdog_queue: asyncio.Queue, status_queue: asyn
             status_queue.put_nowait(drawing.ReadConnectionStateChanged.ESTABLISHED)
             status_queue.put_nowait(drawing.SendingConnectionStateChanged.ESTABLISHED)
             watchdog_logger.debug(message)
+
+
+def catching_exception(exc: Exception | list[Exception], message: str | None, raise_on_giveup: bool = False):
+    def wrap(func):
+        async def wrapped(*args, **kwargs):
+
+            try:
+                await func(*args, **kwargs)
+            except exc:
+                if message:
+                    logger.info(message)
+                if raise_on_giveup:
+                    raise
+
+        return wrapped
+    return wrap
