@@ -52,7 +52,7 @@ async def main():
             send_messages, sending_queue, watchdog_queue, status_queue, reader_w, writer
         )
         tg.start_soon(watch_for_connection, watchdog_queue, status_queue)
-        tg.start_soon(send_empty_message, writer)
+        tg.start_soon(send_empty_message, watchdog_queue, status_queue, reader, writer)
 
 
 if __name__ == "__main__":
