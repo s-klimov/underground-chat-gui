@@ -1,48 +1,32 @@
 import asyncio
-from typing import Optional
 
+from aiologger import Logger
 from aiofile import async_open
 
-import backoff as backoff
+from common import options, drawing
 
-from common import cancelled_handler, logger, options, drawing
-
-logger.name = "LISTENER"
+logger = Logger.with_default_handlers()
 
 
-def authorize(
-        minechat_host: str,
-        minechat_port: 'int > 0',
-):
-    def wrap(func):
-        async def wrapped(*args):
-            _, watchdog_queue, status_queue = args
-            status_queue.put_nowait(drawing.ReadConnectionStateChanged.INITIATED)
-            reader, _ = await asyncio.open_connection(minechat_host, minechat_port)
-
-            await func(*args, reader=reader)
-        return wrapped
-    return wrap
-
-
-@backoff.on_exception(backoff.expo,
-                      asyncio.exceptions.CancelledError,
-                      raise_on_giveup=False,
-                      giveup=cancelled_handler)
-@authorize(options.host, options.listen_port)
 async def listen_messages(
-        queue: Optional[asyncio.Queue],
-        watchdog_queue: Optional[asyncio.Queue],
-        status_queue: Optional[asyncio.Queue],
-        /,
-        reader: Optional[asyncio.StreamReader],
+    queue: asyncio.Queue,
+    watchdog_queue: asyncio.Queue,
+    status_queue: asyncio.Queue,
+    reader: asyncio.StreamReader,
+    /,
 ) -> None:
-    """Считывает сообщения из сайта в консоль"""
+    """
+    Считывает сообщения из чата в консоль и в графический интерфейс.
+        Позиционные аргументы:
+                queue: очередь сообщений в чате
+                watchdog_queue: очередь в которой отмечается каждое поступление сообщений в чат
+                status_queue: очередь для отображения статуса соединений в графическом интерфейсе
+                reader: поток чтения
+    """
 
     status_queue.put_nowait(drawing.ReadConnectionStateChanged.ESTABLISHED)
 
     while data := await reader.readline():
-
         logger.debug(data.decode().rstrip())  # логируем полученное сообщение
 
         await save_messages(filepath=options.history, message=data.decode())
@@ -51,11 +35,16 @@ async def listen_messages(
             queue.put_nowait(data.decode().rstrip())
 
         if watchdog_queue is not None:
-            watchdog_queue.put_nowait('Connection is alive. New message in chat')
+            watchdog_queue.put_nowait("Connection is alive. New message in chat")
 
 
 async def save_messages(filepath: str, message: str):
-    """Сохраняет сообщение в файл"""
+    """
+    Сохраняет сообщение в файл.
+        Параметры:
+                filepath: путь к файлу в котором сохраняются сообщения
+                message: сообщение для сохранения в файле
+    """
 
-    async with async_open(filepath, 'a') as afp:
+    async with async_open(filepath, "a") as afp:
         await afp.write(message)
