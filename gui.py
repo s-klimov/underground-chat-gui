@@ -25,6 +25,7 @@ async def load_history(messages_queue: asyncio.Queue):
 @catching_exception(asyncio.exceptions.CancelledError, message="CancelledError", raise_on_giveup=True)
 @catching_exception(TclError, message="окно программы закрыто", raise_on_giveup=False)
 async def main():
+    """Основная функция генерирующая очереди и потоки чтения и записи сообщений в чат майнкрафта """
 
     messages_queue = asyncio.Queue()
     sending_queue = asyncio.Queue()

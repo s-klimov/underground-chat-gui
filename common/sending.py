@@ -10,7 +10,13 @@ from common.etc import InvalidToken, logger
 VERIFICATION_INTERVAL = 90 * 60
 
 
-def authorize(minechat_host: str, minechat_port: 'int > 0', account: UUID):
+def authorize(account: UUID):
+    """
+    Декоратор авторизации в чате для отправки сообщений.
+            Параметры:
+                    account: хэш аккаунта для отправки сообщений в чат
+    """
+
     def wrap(func):
         async def wrapped(*args):
             _, watchdog_queue, status_queue, reader, writer = args
@@ -43,8 +49,17 @@ def authorize(minechat_host: str, minechat_port: 'int > 0', account: UUID):
     return wrap
 
 
-@authorize(options.host, options.sending_port, options.account)
+@authorize(options.account)
 async def send_messages(queue, watchdog_queue, status_queue, reader, writer, /):
+    """
+    Посылает сообщения пользователя в чат.
+        Позиционные аргументы:
+                queue: очередь, из которой считываются набранные пользователем сообщения
+                watchdog_queue: очередь в которой отмечается каждое поступление сообщений в чат
+                status_queue: очередь для отображения статуса соединений в графическом интерфейсе
+                reader: поток чтения сообщения из чата
+                writer: поток записи сообщений в чат
+    """
 
     while message := await queue.get():
         message_line = ''.join([re.sub(r'\\n', ' ', message), '\n']).encode()
@@ -56,8 +71,12 @@ async def send_messages(queue, watchdog_queue, status_queue, reader, writer, /):
 
 
 async def send_empty_message(writer: asyncio.StreamWriter, /):
-    """Каждые VERIFICATION_INTERVAL секунд посылает на порт отправки сообщений пустое сообщение, чтобы
-    поддерживать соединение с сервером активным"""
+    """
+    Каждые VERIFICATION_INTERVAL секунд посылает на порт отправки сообщений пустое сообщение, чтобы
+    поддерживать соединение с сервером активным.
+        Позиционные аргументы:
+                writer: поток записи сообщений в чат
+    """
     while True:
         await asyncio.sleep(VERIFICATION_INTERVAL)
         line_feed = '\n'.encode()

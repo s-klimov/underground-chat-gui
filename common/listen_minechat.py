@@ -14,7 +14,14 @@ async def listen_messages(
         reader: asyncio.StreamReader,
         /,
 ) -> None:
-    """Считывает сообщения из сайта в консоль"""
+    """
+    Считывает сообщения из чата в консоль и в графический интерфейс.
+        Позиционные аргументы:
+                queue: очередь сообщений в чате
+                watchdog_queue: очередь в которой отмечается каждое поступление сообщений в чат
+                status_queue: очередь для отображения статуса соединений в графическом интерфейсе
+                reader: поток чтения
+    """
 
     status_queue.put_nowait(drawing.ReadConnectionStateChanged.ESTABLISHED)
 
@@ -32,7 +39,12 @@ async def listen_messages(
 
 
 async def save_messages(filepath: str, message: str):
-    """Сохраняет сообщение в файл"""
+    """
+    Сохраняет сообщение в файл.
+        Параметры:
+                filepath: путь к файлу в котором сохраняются сообщения
+                message: сообщение для сохранения в файле
+    """
 
     async with async_open(filepath, 'a') as afp:
         await afp.write(message)

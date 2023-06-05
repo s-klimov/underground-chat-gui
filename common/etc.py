@@ -22,6 +22,8 @@ watchdog_logger = Logger.with_default_handlers()
 
 
 def get_args():
+    """Загружает в проект переменные окружения и параметры из командной строки."""
+
     load_dotenv()
 
     parser = configargparse.ArgParser(default_config_files=['.env', ], ignore_unknown_config_file_keys=True)
@@ -53,6 +55,12 @@ class InvalidToken(Exception):
 
 
 async def watch_for_connection(watchdog_queue: asyncio.Queue, status_queue: asyncio.Queue, /):
+    """
+    Проверяет регулярность поступления сообщений в чат.
+        Параметры:
+                watchdog_queue: прослушиваемая очередь с отметками о поступлении сообщений в чат
+                status_queue: очередь для отображения статуса соединений в графическом интерфейсе
+    """
 
     while True:
         try:
@@ -69,6 +77,14 @@ async def watch_for_connection(watchdog_queue: asyncio.Queue, status_queue: asyn
 
 
 def catching_exception(exc: Exception | list[Exception], message: str | None, raise_on_giveup: bool = False):
+    """
+    Отлавливает исключение внутри декорируемой функции.
+        Параметры:
+                exc: какое исключение(я) ожидаем
+                message: сообщение для логирования
+                raise_on_giveup: отпускать исключение или нет
+    """
+
     def wrap(func):
         async def wrapped(*args, **kwargs):
 
@@ -76,7 +92,7 @@ def catching_exception(exc: Exception | list[Exception], message: str | None, ra
                 await func(*args, **kwargs)
             except exc:
                 if message:
-                    logger.info(message)
+                    logger.error(message)
                 if raise_on_giveup:
                     raise
 
