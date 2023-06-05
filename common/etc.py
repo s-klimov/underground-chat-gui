@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from common import drawing
 from common.drawing import draw_error
 
-TIMEOUT_MAX = 5  # NOTE 5 секунд установлено эксперементально
+TIMEOUT_MAX = 50
 USERS_FILE = "users.json"
 
 logger = Logger.with_default_handlers()

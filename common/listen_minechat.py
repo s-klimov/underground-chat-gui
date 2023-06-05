@@ -7,6 +7,8 @@ from common import options, drawing
 
 logger = Logger.with_default_handlers()
 
+BOT_NAMES = ("Eva", "Vlad")
+
 
 async def listen_messages(
     queue: asyncio.Queue,
@@ -27,6 +29,10 @@ async def listen_messages(
     status_queue.put_nowait(drawing.ReadConnectionStateChanged.ESTABLISHED)
 
     while data := await reader.readline():
+
+        if data.decode().startswith(BOT_NAMES):
+            continue
+
         logger.debug(data.decode().rstrip())  # логируем полученное сообщение
 
         await save_messages(filepath=options.history, message=data.decode())
