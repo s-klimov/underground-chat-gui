@@ -1,10 +1,11 @@
 import asyncio
 
+from aiologger import Logger
 from aiofile import async_open
 
-from common import logger, options, drawing
+from common import options, drawing
 
-logger.name = "LISTENER"
+logger = Logger.with_default_handlers()
 
 
 async def listen_messages(

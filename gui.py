@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from tkinter import TclError
 
+from aiologger import Logger
 from aiofile import async_open
 from anyio import run, create_task_group
 
@@ -10,6 +11,9 @@ from common import drawing, options
 from common.etc import InvalidToken, watch_for_connection, catching_exception
 from common.sending import send_messages, send_empty_message
 from common.listen_minechat import listen_messages
+
+logging.basicConfig(level=logging.INFO)  # Настройка для синхронного логгера, см. if __name__ == '__main__'.
+logger = Logger.with_default_handlers()
 
 
 async def load_history(messages_queue: asyncio.Queue):

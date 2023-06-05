@@ -2,10 +2,13 @@ import json
 import re
 
 import asyncio
+from aiologger import Logger
 from uuid import UUID
 
 from common import options, drawing
-from common.etc import InvalidToken, logger
+from common.etc import InvalidToken
+
+logger = Logger.with_default_handlers()
 
 VERIFICATION_INTERVAL = 90 * 60
 

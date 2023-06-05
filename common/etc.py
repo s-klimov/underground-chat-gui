@@ -1,4 +1,3 @@
-import logging.config
 import os
 import uuid
 
@@ -15,10 +14,7 @@ from common.drawing import draw_error
 TIMEOUT_MAX = 5  # NOTE 5 секунд установлено эксперементально
 USERS_FILE = "users.json"
 
-logging.config.fileConfig('logging.ini', disable_existing_loggers=False)
 logger = Logger.with_default_handlers()
-
-watchdog_logger = Logger.with_default_handlers()
 
 
 def get_args():
@@ -67,13 +63,13 @@ async def watch_for_connection(watchdog_queue: asyncio.Queue, status_queue: asyn
             async with timeout(TIMEOUT_MAX):
                 message = await watchdog_queue.get()
         except asyncio.exceptions.TimeoutError:
-            watchdog_logger.debug("%ss timeout is elapsed" % (TIMEOUT_MAX,))
+            logger.debug("%ss timeout is elapsed" % (TIMEOUT_MAX,))
             status_queue.put_nowait(drawing.ReadConnectionStateChanged.INITIATED)
             status_queue.put_nowait(drawing.SendingConnectionStateChanged.INITIATED)
         else:
             status_queue.put_nowait(drawing.ReadConnectionStateChanged.ESTABLISHED)
             status_queue.put_nowait(drawing.SendingConnectionStateChanged.ESTABLISHED)
-            watchdog_logger.debug(message)
+            logger.debug(message)
 
 
 def catching_exception(exc: Exception | list[Exception], message: str | None, raise_on_giveup: bool = False):
