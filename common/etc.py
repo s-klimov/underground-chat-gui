@@ -36,8 +36,6 @@ def get_args():
     parser.add('--account', type=uuid.UUID, required=False, default=os.getenv('ACCOUNT'),
                help='Хэш аккаунта для написания сообщений в чат (default: %(default)s). '
                     'Если задан параметр register, то account игнорируется.')
-    parser.add('--register', type=str, required=False,
-               help='Имя пользователя для регистрации')
 
     return parser.parse_args()
 

@@ -16,6 +16,7 @@ aiofile = "^3.8.5"
 async-timeout = "^4.0.2"
 aiologger = "^0.7.0"
 anyio = "^3.7.0"
+black = "^23.3.0"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
