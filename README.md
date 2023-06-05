@@ -61,6 +61,7 @@ PS C:\Program Files (x86)\Xming> .\xming -ac
 ## Запуск проекта
 
 ### Графический интерфейс регистрации в чате
+![Окно регистрации](screenshots/register.png)  
 ```commandline
 python register.py
 ```
@@ -77,6 +78,7 @@ python register.py --help
 ```
 
 ### Графический интерфейс прослушивания чата и отправки сообщений в чат
+![Окно чата](screenshots/chat.png)  
 ```commandline
 python gui.py
 ```
