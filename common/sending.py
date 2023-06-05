@@ -32,10 +32,14 @@ def authorize(account: UUID):
 
             auth = json.loads(response)
 
-            if auth is None:  # Если результат аутентификации null, то прекращаем выполнение скрипта
+            if (
+                auth is None
+            ):  # Если результат аутентификации null, то прекращаем выполнение скрипта
                 raise InvalidToken(account)
 
-            logger.debug(f"Выполнена авторизация по токену {account}. Пользователь {auth['nickname']}")
+            logger.debug(
+                f"Выполнена авторизация по токену {account}. Пользователь {auth['nickname']}"
+            )
 
             status_queue.put_nowait(drawing.SendingConnectionStateChanged.ESTABLISHED)
             status_queue.put_nowait(drawing.NicknameReceived(auth["nickname"]))
@@ -49,6 +53,7 @@ def authorize(account: UUID):
             await writer.wait_closed()
 
         return wrapped
+
     return wrap
 
 
@@ -65,12 +70,12 @@ async def send_messages(queue, watchdog_queue, status_queue, reader, writer, /):
     """
 
     while message := await queue.get():
-        message_line = ''.join([re.sub(r'\\n', ' ', message), '\n']).encode()
-        line_feed = '\n'.encode()
+        message_line = "".join([re.sub(r"\\n", " ", message), "\n"]).encode()
+        line_feed = "\n".encode()
 
         writer.writelines([message_line, line_feed])
         await writer.drain()
-        watchdog_queue.put_nowait('Connection is alive. Message sent')
+        watchdog_queue.put_nowait("Connection is alive. Message sent")
 
 
 async def send_empty_message(writer: asyncio.StreamWriter, /):
@@ -82,7 +87,7 @@ async def send_empty_message(writer: asyncio.StreamWriter, /):
     """
     while True:
         await asyncio.sleep(VERIFICATION_INTERVAL)
-        line_feed = '\n'.encode()
+        line_feed = "\n".encode()
         writer.write(line_feed)
         await writer.drain()
-        logger.info('Empty message sent to maintain the connection')
+        logger.info("Empty message sent to maintain the connection")

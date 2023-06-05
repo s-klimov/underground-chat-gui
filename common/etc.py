@@ -22,18 +22,48 @@ def get_args():
 
     load_dotenv()
 
-    parser = configargparse.ArgParser(default_config_files=['.env', ], ignore_unknown_config_file_keys=True)
-    parser.add('--host', type=str, required=False, default=os.getenv('HOST'),
-               help='Хост сервера с чатом (default: %(default)s)')
-    parser.add('--listen_port', type=int, required=False, default=os.getenv('LISTEN_PORT'),
-               help='Порт для чтения сообщений сервера с чатом (default: %(default)s)')
-    parser.add('--sending_port', type=int, required=False, default=os.getenv('SENDING_PORT'),
-               help='Порт для отправки сообщений на сервер с чатом (default: %(default)s)')
-    parser.add('--history', type=str, required=False, default=os.getenv('HISTORY'),
-               help='Путь к файлу для хранения истории чата (default: %(default)s)')
-    parser.add('--account', type=uuid.UUID, required=False, default=os.getenv('ACCOUNT'),
-               help='Хэш аккаунта для написания сообщений в чат (default: %(default)s). '
-                    'Если задан параметр register, то account игнорируется.')
+    parser = configargparse.ArgParser(
+        default_config_files=[
+            ".env",
+        ],
+        ignore_unknown_config_file_keys=True,
+    )
+    parser.add(
+        "--host",
+        type=str,
+        required=False,
+        default=os.getenv("HOST"),
+        help="Хост сервера с чатом (default: %(default)s)",
+    )
+    parser.add(
+        "--listen_port",
+        type=int,
+        required=False,
+        default=os.getenv("LISTEN_PORT"),
+        help="Порт для чтения сообщений сервера с чатом (default: %(default)s)",
+    )
+    parser.add(
+        "--sending_port",
+        type=int,
+        required=False,
+        default=os.getenv("SENDING_PORT"),
+        help="Порт для отправки сообщений на сервер с чатом (default: %(default)s)",
+    )
+    parser.add(
+        "--history",
+        type=str,
+        required=False,
+        default=os.getenv("HISTORY"),
+        help="Путь к файлу для хранения истории чата (default: %(default)s)",
+    )
+    parser.add(
+        "--account",
+        type=uuid.UUID,
+        required=False,
+        default=os.getenv("ACCOUNT"),
+        help="Хэш аккаунта для написания сообщений в чат (default: %(default)s). "
+        "Если задан параметр register, то account игнорируется.",
+    )
 
     return parser.parse_args()
 
@@ -43,14 +73,16 @@ class InvalidToken(Exception):
 
     def __init__(self, account_hash: uuid.UUID):
         # Call the base class constructor with the parameters it needs
-        message = f'Проверьте токен {account_hash}, сервер его не узнал'
+        message = f"Проверьте токен {account_hash}, сервер его не узнал"
         super().__init__(message)
 
         # отрисовываем окно с тексом ошибки
         draw_error(message)
 
 
-async def watch_for_connection(watchdog_queue: asyncio.Queue, status_queue: asyncio.Queue, /):
+async def watch_for_connection(
+    watchdog_queue: asyncio.Queue, status_queue: asyncio.Queue, /
+):
     """
     Проверяет регулярность поступления сообщений в чат.
         Параметры:
@@ -72,7 +104,9 @@ async def watch_for_connection(watchdog_queue: asyncio.Queue, status_queue: asyn
             logger.debug(message)
 
 
-def catching_exception(exc: Exception | list[Exception], message: str | None, raise_on_giveup: bool = False):
+def catching_exception(
+    exc: Exception | list[Exception], message: str | None, raise_on_giveup: bool = False
+):
     """
     Отлавливает исключение внутри декорируемой функции.
         Параметры:
@@ -83,7 +117,6 @@ def catching_exception(exc: Exception | list[Exception], message: str | None, ra
 
     def wrap(func):
         async def wrapped(*args, **kwargs):
-
             try:
                 await func(*args, **kwargs)
             except exc:
@@ -93,4 +126,5 @@ def catching_exception(exc: Exception | list[Exception], message: str | None, ra
                     raise
 
         return wrapped
+
     return wrap

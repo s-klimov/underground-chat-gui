@@ -12,12 +12,13 @@ from common.etc import InvalidToken, watch_for_connection, catching_exception
 from common.sending import send_messages, send_empty_message
 from common.listen_minechat import listen_messages
 
-logging.basicConfig(level=logging.INFO)  # Настройка для синхронного логгера, см. if __name__ == '__main__'.
+logging.basicConfig(
+    level=logging.INFO
+)  # Настройка для синхронного логгера, см. if __name__ == '__main__'.
 logger = Logger.with_default_handlers()
 
 
 async def load_history(messages_queue: asyncio.Queue):
-
     if not Path(options.history).is_file():
         return
 
@@ -26,10 +27,12 @@ async def load_history(messages_queue: asyncio.Queue):
             messages_queue.put_nowait(message.rstrip())
 
 
-@catching_exception(asyncio.exceptions.CancelledError, message="CancelledError", raise_on_giveup=True)
+@catching_exception(
+    asyncio.exceptions.CancelledError, message="CancelledError", raise_on_giveup=True
+)
 @catching_exception(TclError, message="окно программы закрыто", raise_on_giveup=False)
 async def main():
-    """Основная функция генерирующая очереди и потоки чтения и записи сообщений в чат майнкрафта """
+    """Основная функция генерирующая очереди и потоки чтения и записи сообщений в чат майнкрафта"""
 
     messages_queue = asyncio.Queue()
     sending_queue = asyncio.Queue()
@@ -40,17 +43,19 @@ async def main():
     reader_w, writer = await asyncio.open_connection(options.host, options.sending_port)
 
     async with create_task_group() as tg:
-
         tg.start_soon(drawing.draw, messages_queue, sending_queue, status_queue)
         tg.start_soon(load_history, messages_queue)
-        tg.start_soon(listen_messages, messages_queue, watchdog_queue, status_queue, reader)
-        tg.start_soon(send_messages, sending_queue, watchdog_queue, status_queue, reader_w, writer)
+        tg.start_soon(
+            listen_messages, messages_queue, watchdog_queue, status_queue, reader
+        )
+        tg.start_soon(
+            send_messages, sending_queue, watchdog_queue, status_queue, reader_w, writer
+        )
         tg.start_soon(watch_for_connection, watchdog_queue, status_queue)
         tg.start_soon(send_empty_message, writer)
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     try:
         run(main)
     except InvalidToken as e:
@@ -59,4 +64,4 @@ if __name__ == '__main__':
         # NOTE CancelledError перехватываем повторно для корректного завершения работы корутин
         pass
     finally:
-        logging.info('Работа сервера остановлена')
+        logging.info("Работа сервера остановлена")
