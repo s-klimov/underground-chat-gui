@@ -8,7 +8,12 @@ from aiofile import async_open
 from anyio import run, create_task_group
 
 from common import drawing, options
-from common.etc import InvalidToken, watch_for_connection, catching_exception
+from common.etc import (
+    InvalidToken,
+    watch_for_connection,
+    catching_exception,
+    open_connection,
+)
 from common.sending import send_messages, send_empty_message
 from common.listen_minechat import listen_messages
 
@@ -39,20 +44,33 @@ async def main():
     status_queue = asyncio.Queue()
     watchdog_queue = asyncio.Queue()
 
-    reader, _ = await asyncio.open_connection(options.host, options.listen_port)
-    reader_w, writer = await asyncio.open_connection(options.host, options.sending_port)
-
-    async with create_task_group() as tg:
-        tg.start_soon(drawing.draw, messages_queue, sending_queue, status_queue)
-        tg.start_soon(load_history, messages_queue)
-        tg.start_soon(
-            listen_messages, messages_queue, watchdog_queue, status_queue, reader
-        )
-        tg.start_soon(
-            send_messages, sending_queue, watchdog_queue, status_queue, reader_w, writer
-        )
-        tg.start_soon(watch_for_connection, watchdog_queue, status_queue)
-        tg.start_soon(send_empty_message, watchdog_queue, status_queue, reader, writer)
+    async with open_connection(options.host, options.listen_port) as (reader, _):
+        async with open_connection(options.host, options.sending_port) as (
+            reader_w,
+            writer,
+        ):
+            async with create_task_group() as tg:
+                tg.start_soon(drawing.draw, messages_queue, sending_queue, status_queue)
+                tg.start_soon(load_history, messages_queue)
+                tg.start_soon(
+                    listen_messages,
+                    messages_queue,
+                    watchdog_queue,
+                    status_queue,
+                    reader,
+                )
+                tg.start_soon(
+                    send_messages,
+                    sending_queue,
+                    watchdog_queue,
+                    status_queue,
+                    reader_w,
+                    writer,
+                )
+                tg.start_soon(watch_for_connection, watchdog_queue, status_queue)
+                tg.start_soon(
+                    send_empty_message, watchdog_queue, status_queue, reader, writer
+                )
 
 
 if __name__ == "__main__":
