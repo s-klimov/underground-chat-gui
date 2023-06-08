@@ -2,6 +2,7 @@ import os
 import uuid
 
 import asyncio
+from contextlib import asynccontextmanager
 
 import configargparse
 from aiologger import Logger
@@ -128,3 +129,18 @@ def catching_exception(
         return wrapped
 
     return wrap
+
+
+@asynccontextmanager
+async def open_connection(host: str, port: "int > 0"):
+    """
+    Контекстный менеджер открытия сокета
+        Параметры:
+                host (str): адрес или доменное имя хоста
+                port (int): порт хоста
+    """
+    reader, writer = await asyncio.open_connection(host, port)
+    try:
+        yield reader, writer
+    finally:
+        writer.close()

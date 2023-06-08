@@ -9,6 +9,8 @@ from aiofile import LineReader, Writer, AIOFile
 from aiologger import Logger
 from dotenv import load_dotenv
 
+from common.etc import open_connection
+
 ENV_FILE = ".env"  # файл, в котором хранятся настройки скрипта
 ACCOUNT_ENV = "ACCOUNT"  # имя переменной окружения, в которой хранится хэш аккаунта
 
@@ -26,20 +28,20 @@ async def register_user(user_name: str) -> (str, str):
     """
 
     load_dotenv()
-    reader, writer = await asyncio.open_connection(
-        os.getenv("HOST"), os.getenv("SENDING_PORT")
-    )
-
-    await reader.readline()  # пропускаем строку-приглашение ввода хэша аккаунта
-    writer.write(
-        "\n".encode()
-    )  # вводим пустую строку, чтобы получить приглашение для регистрации
-    await writer.drain()
-    await reader.readline()  # пропускаем строку-приглашение ввода имени пользователя
-    user_name = re.sub(r"\\n", " ", user_name)
-    writer.write(f"{user_name}\n".encode())
-    await writer.drain()
-    response = await reader.readline()  # получаем результат регистрации
+    async with open_connection(os.getenv("HOST"), os.getenv("SENDING_PORT")) as (
+        reader,
+        writer,
+    ):
+        await reader.readline()  # пропускаем строку-приглашение ввода хэша аккаунта
+        writer.write(
+            "\n".encode()
+        )  # вводим пустую строку, чтобы получить приглашение для регистрации
+        await writer.drain()
+        await reader.readline()  # пропускаем строку-приглашение ввода имени пользователя
+        user_name = re.sub(r"\\n", " ", user_name)
+        writer.write(f"{user_name}\n".encode())
+        await writer.drain()
+        response = await reader.readline()  # получаем результат регистрации
 
     user = json.loads(response)
 
@@ -48,8 +50,17 @@ async def register_user(user_name: str) -> (str, str):
     ):  # Если результат аутентификации null, то прекращаем выполнение скрипта
         raise ValueError(f"Ошибка регистрации пользователя. Ответ сервера {response}")
     await logger.info(f"Пользователь {user} зарегистрирован")
+    await writes_account_hash_to_env(user["account_hash"])
 
-    # Записываем результат регистрации в env-файл
+    return user["nickname"], user["account_hash"]
+
+
+async def writes_account_hash_to_env(account_hash: str):
+    """
+    Записывает результат регистрации в env-файл.
+        Параметры:
+                account_hash (str): хэш аккаунта после регистрации пользователя
+    """
     lines = []
     async with AIOFile(ENV_FILE) as afp:
         async for line in LineReader(afp):
@@ -59,13 +70,11 @@ async def register_user(user_name: str) -> (str, str):
         [
             await writer(line)
             if not line.startswith(ACCOUNT_ENV)  # TODO заменить условие на re.match
-            else await writer(f'{ACCOUNT_ENV}={user["account_hash"]}\n')
+            else await writer(f"{ACCOUNT_ENV}={account_hash}\n")
             for line in lines
         ]
         await afp.fsync()
     await logger.info(f"Хеш аккаунта сохранен в файле {ENV_FILE}")
-
-    return user["nickname"], user["account_hash"]
 
 
 def draw_message(message: str):
